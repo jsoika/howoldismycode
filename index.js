@@ -1,5 +1,11 @@
+var pathArg = undefined;
+process.argv.forEach(function(val, index, array) {
+  console.log(index + ": " + val);
+  pathArg = array[2];
+});
+
 const cmd = require("./cmd");
-var pathToRepo = require("path").resolve("../skipta-flic");
+var pathToRepo = require("path").resolve(pathArg);
 var fs = require("fs");
 const excludes = ["node_modules", ".git", ".DS_Store", "thirdparty"];
 
