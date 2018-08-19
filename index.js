@@ -1,14 +1,20 @@
 var pathArg = undefined;
+var includeFilesArg = undefined;
+var ig = undefined;
+var codeageignoreFilename = ".codeageignore";
+var supportedExtensions = [];
+
 process.argv.forEach(function(val, index, array) {
   console.log(index + ": " + val);
   pathArg = array[2];
+  includeFilesArg = array[3];
 });
 
 const ignore = require("ignore");
 const cmd = require("./cmd");
 var pathToRepo = require("path").resolve(pathArg);
 var fs = require("fs");
-var ig = undefined;
+var path = require("path");
 
 function traverseFileSystem(currentPath) {
   //   console.log(currentPath);
@@ -17,7 +23,7 @@ function traverseFileSystem(currentPath) {
     var currentFile = currentPath + "/" + files[i];
     // add current path to filter array
     var stats = fs.statSync(currentFile);
-    if (stats.isFile() && !ig.ignores(files[i])) {
+    if (stats.isFile() && !ig.ignores(files[i]) && filterFile(files[i])) {
       cmd.blameFile(currentPath, files[i]);
     } else if (stats.isDirectory() && !ig.ignores(files[i])) {
       traverseFileSystem(currentFile);
@@ -25,18 +31,29 @@ function traverseFileSystem(currentPath) {
   }
 }
 
-function initIgnores() {
-  // ignore().add([".abc/*", "!.abc/d/"]);
+function initFileSettings(file) {
   // read ignore file from project dir
-  var filename = ".codeageignore";
-  if (fs.existsSync(filename)) {
-    ig = ignore().add(fs.readFileSync(filename).toString());
+
+  if (fs.existsSync(file)) {
+    ig = ignore().add(fs.readFileSync(file).toString());
   }
-  // create filter array
+  // fill accepted file extensions array
+  if (includeFilesArg !== undefined) {
+    supportedExtensions = includeFilesArg.split(",");
+  } else {
+  }
+}
+
+function filterFile(file) {
+  if (supportedExtensions.length > 0) {
+    return supportedExtensions.includes(path.extname(file));
+  } else {
+    return true;
+  }
 }
 
 cmd.setFinishCallback(finish);
-initIgnores();
+initFileSettings(codeageignoreFilename);
 traverseFileSystem(pathToRepo);
 
 function finish() {
