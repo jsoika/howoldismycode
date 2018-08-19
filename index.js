@@ -4,26 +4,39 @@ process.argv.forEach(function(val, index, array) {
   pathArg = array[2];
 });
 
+const ignore = require("ignore");
 const cmd = require("./cmd");
 var pathToRepo = require("path").resolve(pathArg);
 var fs = require("fs");
-const excludes = ["node_modules", ".git", ".DS_Store", "thirdparty"];
+var ig = undefined;
 
-var traverseFileSystem = function(currentPath) {
+function traverseFileSystem(currentPath) {
   //   console.log(currentPath);
   var files = fs.readdirSync(currentPath);
   for (var i in files) {
     var currentFile = currentPath + "/" + files[i];
+    // add current path to filter array
     var stats = fs.statSync(currentFile);
-    if (stats.isFile() && !excludes.includes(files[i])) {
+    if (stats.isFile() && !ig.ignores(files[i])) {
       cmd.blameFile(currentPath, files[i]);
-    } else if (stats.isDirectory() && !excludes.includes(files[i])) {
+    } else if (stats.isDirectory() && !ig.ignores(files[i])) {
       traverseFileSystem(currentFile);
     }
   }
-};
+}
+
+function initIgnores() {
+  // ignore().add([".abc/*", "!.abc/d/"]);
+  // read ignore file from project dir
+  var filename = ".codeageignore";
+  if (fs.existsSync(filename)) {
+    ig = ignore().add(fs.readFileSync(filename).toString());
+  }
+  // create filter array
+}
 
 cmd.setFinishCallback(finish);
+initIgnores();
 traverseFileSystem(pathToRepo);
 
 function finish() {
