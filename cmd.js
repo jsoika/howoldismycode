@@ -44,10 +44,12 @@ function blameFileSpawn(dir, file) {
   task.push({});
   var child = spawn(
     "git",
-    ["blame", "-t", "--date=unix", "--line-porcelain", file],
+    ["blame", "-t", "--date=unix", "--line-porcelain", "--show-stats", file],
     { cwd: dir }
   );
   var result = "";
+  var avgCommits = undefined;
+
   child.stdout.on("data", function(data) {
     result += data.toString();
     // console.log("stdout: " + data);
@@ -71,10 +73,20 @@ function blameFileSpawn(dir, file) {
       var days = timeDiff / 60 / 60 / 24;
       days = Math.round((days + 0.00001) * 100) / 100;
       items.push(days);
-      console.log(file + " " + days + " days");
+
       // console.log("ndays: ", Math.ceil((now - avg) / (1000 * 3600)));
       // console.log("days: ", now - Math.floor(avg));
     }
+    const commits = lines.filter(line => line.includes("num commits"));
+    const numberOfCommits = commits.map(x => {
+      return parseInt(x.split(": ")[1]);
+    });
+    if (numberOfCommits.length > 0) {
+      avgCommits =
+        numberOfCommits.reduce((a, b) => a + b) / numberOfCommits.length;
+    }
+
+    console.log(file + " " + days + " days" + " - Commits: " + avgCommits);
     task.pop();
     if (task.length === 0) {
       finishCallback();
